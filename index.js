@@ -34,7 +34,9 @@ function Vimeo(iframe) {
   this.id = qs.parse(u.query.replace(/&amp;/g, '&')).player_id;
 
   if(!this.id) {
-    throw new Error('player_id is required for player src');
+    this.id = Vimeo.randomPlayerId();
+    this.src += '&amp;player_id=' + this.id;
+    this.el.setAttribute('src', this.src);
   }
 
   Vimeo.Collection.push(this);
@@ -224,4 +226,8 @@ Vimeo.listen = function(){
 
 Vimeo.unlisten = function(){
   events.unbind(window, 'message', Vimeo.onMessageRecieved);
+};
+
+Vimeo.randomPlayerId = function(){
+  return 'player-' + Math.random().toString(36).substring(7);
 };
