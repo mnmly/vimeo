@@ -1,13 +1,10 @@
 {
-  "name": "froogaloop",
-  "dependencies": {
-    "component": "~0.19.5",
-    "component-serve": "~0.5.2"
-  },
+  "name": "vimeo",
   "scripts": [
     "index.js"
   ],
   "devDependencies": {
-    "component/component": "*"
+    "component": "~0.19.5",
+    "component-serve": "~0.5.2"
   }
 }
