@@ -27,7 +27,7 @@ var Vimeo = require('vimeo');
 // Start listening for message event from vimeo iframe
 Vimeo.listen();
 
-var vimeo = new Vimeo('vimeo-iframe');
+var vimeo = new Vimeo('vimeo-iframe-id');
 
 // Instead of id of iframe, you can pass element as well
 // vimeo = new Vimeo(iframeElement);
