@@ -16,6 +16,11 @@ var type = require('type');
 
 module.exports = Vimeo;
 
+/**
+ * Instantiate `Vimeo`
+ *
+ * @param {Element/String} iframe
+ */
 
 function Vimeo(iframe) {
 
@@ -36,13 +41,27 @@ function Vimeo(iframe) {
 
 }
 
+/**
+ * Collection of instance
+ * @api private
+ */
+
 Vimeo.Collection = [];
 
 /**
- * Emitter
+ * Installs Emitter
  */
 
 Emitter(Vimeo.prototype);
+
+
+/**
+ * Add event listeners and tells iFrame to emit the event.
+ *
+ * @param {String} eventName
+ * @param {Function} fn
+ * @api public
+ */
 
 Vimeo.prototype.on = function(eventName, fn){
 
@@ -59,7 +78,9 @@ Vimeo.prototype.on = function(eventName, fn){
 
 
 /**
- * Actual event handling
+ * Manages events, Inherits from `Emitter`'s `on`
+ *
+ * @api private
  */
 
 Vimeo.prototype._on = function(){
@@ -67,7 +88,47 @@ Vimeo.prototype._on = function(){
 };
 
 /**
- * Higher level api
+ * API
+ *
+ * Usage: 
+ * ```
+ *  // Getters
+ *  vimeo.api('currentTime', function(d){
+ *    console.log(d.value);
+ *  });
+ *
+ *  // Setters
+ *  vimeo.api('setLoop', 10);
+ *
+ *  // Methods
+ *  vimeo.api('seekTo', 10);
+ *
+ * ```
+ *  - *Getters*
+ *      - `currentTime`
+ *      - `getVideoHeight`
+ *      - `getVideoWidth`
+ *      - `getDuration`
+ *      - `getColor`
+ *      - `getVideoUrl`
+ *      - `getVideoEmbedCode`
+ *      - `getVolume`
+ *      - `paused`
+ *
+ *  - *Setters*
+ *      - `setLoop`
+ *      - `setColor`
+ *      - `setVolume`
+ *
+ *  - *Methods*
+ *      - `play`
+ *      - `pause`
+ *      - `unload`
+ *      - `seekTo`
+ *
+ * @param {String} method
+ * @param {Function/String} val
+ * @api public
  */
 
 Vimeo.prototype.api = function(method, val){
@@ -78,13 +139,22 @@ Vimeo.prototype.api = function(method, val){
   this.postMessage(method, val);
 };
 
-Vimeo.prototype.postMessage = function(method, params){
+
+/**
+ * Post message to iframe
+ *
+ * @param {String} method
+ * @param {String} val
+ * @api private
+ */
+
+Vimeo.prototype.postMessage = function(method, val){
 
   if(!this.el.contentWindow.postMessage) return false;
   
   var u = url.parse(this.src);
   var _url = u.protocol + '//' + u.hostname + u.pathname;
-  var payload = { method: method, value: params };
+  var payload = { method: method, value: val };
   var data = JSON.stringify(payload);
 
   debug('postMessage payload: %s', data);
@@ -94,11 +164,28 @@ Vimeo.prototype.postMessage = function(method, params){
 
 };
 
-Vimeo.prototype.destroy = function(){
+
+/**
+ * Destroys instance
+ *
+ * @param {Boolean} remove
+ * @api public
+ */
+
+Vimeo.prototype.destroy = function(remove){
   this.off();
   var idx = Vimeo.Collection.indexOf(this);
   if(idx > -1) Vimeo.Collection.splice(idx, 1);
+  if(remove) this.el.parentElement.removeChild(this.el);
 };
+
+
+/**
+ * Callback for `message` event from vimeo iframe
+ * @param {Event} e
+ *
+ * @api private
+ */
 
 Vimeo.onMessageRecieved = function(e){
 
@@ -119,12 +206,22 @@ Vimeo.onMessageRecieved = function(e){
 
 };
 
+/**
+ * Start listening for message event from iframe
+ *
+ * @api public
+ */
 
 Vimeo.listen = function(){
   events.bind(window, 'message', Vimeo.onMessageRecieved);
 };
 
+/**
+ * Stop listening for message event from iframe
+ *
+ * @api public
+ */
+
 Vimeo.unlisten = function(){
   events.unbind(window, 'message', Vimeo.onMessageRecieved);
 };
-
