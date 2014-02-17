@@ -1,0 +1,13 @@
+{
+  "name": "froogaloop",
+  "dependencies": {
+    "component": "~0.19.5",
+    "component-serve": "~0.5.2"
+  },
+  "scripts": [
+    "index.js"
+  ],
+  "devDependencies": {
+    "component/component": "*"
+  }
+}
