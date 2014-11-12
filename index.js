@@ -8,7 +8,6 @@ var url = require('url');
 var qs = require('querystring');
 var debug = require('debug')('vimeo');
 var find = require('find');
-var type = require('type');
 
 /**
  * Expose `Vimeo`
@@ -134,7 +133,7 @@ Vimeo.prototype._on = function(){
  */
 
 Vimeo.prototype.api = function(method, val){
-  if('function' === type(val)){
+  if('function' === typeof val){
     this._on(method, val); 
     val = null;
   }

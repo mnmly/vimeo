@@ -7,7 +7,6 @@
     "component/url": "*",
     "component/querystring": "*",
     "component/find": "*",
-    "component/type": "*",
     "visionmedia/debug": "*"
   },
   "development": {

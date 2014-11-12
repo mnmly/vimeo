@@ -828,39 +828,6 @@ function objectToFunction(obj) {
   }
 }
 });
-require.register("component-type/index.js", function(exports, require, module){
-/**
- * toString ref.
- */
-
-var toString = Object.prototype.toString;
-
-/**
- * Return the type of `val`.
- *
- * @param {Mixed} val
- * @return {String}
- * @api public
- */
-
-module.exports = function(val){
-  switch (toString.call(val)) {
-    case '[object Date]': return 'date';
-    case '[object RegExp]': return 'regexp';
-    case '[object Arguments]': return 'arguments';
-    case '[object Array]': return 'array';
-    case '[object Error]': return 'error';
-  }
-
-  if (val === null) return 'null';
-  if (val === undefined) return 'undefined';
-  if (val !== val) return 'nan';
-  if (val && val.nodeType === 1) return 'element';
-
-  return typeof val.valueOf();
-};
-
-});
 require.register("visionmedia-debug/debug.js", function(exports, require, module){
 
 /**
@@ -1001,7 +968,7 @@ try {
 } catch(e){}
 
 });
-require.register("froogaloop/index.js", function(exports, require, module){
+require.register("vimeo/index.js", function(exports, require, module){
 /**
  * Module dependencies
  */
@@ -1012,15 +979,20 @@ var url = require('url');
 var qs = require('querystring');
 var debug = require('debug')('vimeo');
 var find = require('find');
-var type = require('type');
 
 /**
- * Expose `Froogaloop`
+ * Expose `Vimeo`
  */
 
-module.exports = Froogaloop;
+module.exports = Vimeo;
 
-function Froogaloop(iframe) {
+/**
+ * Instantiate `Vimeo`
+ *
+ * @param {Element/String} iframe
+ */
+
+function Vimeo(iframe) {
 
   if(typeof iframe === 'string') iframe = document.getElementById(iframe);
 
@@ -1032,22 +1004,38 @@ function Froogaloop(iframe) {
   this.id = qs.parse(u.query.replace(/&amp;/g, '&')).player_id;
 
   if(!this.id) {
-    throw new Error('player_id is required for player src');
+    this.id = Vimeo.randomPlayerId();
+    this.src += '&amp;player_id=' + this.id;
+    this.el.setAttribute('src', this.src);
   }
 
-  Froogaloop.Collection.push(this);
+  Vimeo.Collection.push(this);
 
 }
 
-Froogaloop.Collection = [];
-
 /**
- * Emitter
+ * Collection of instance
+ * @api private
  */
 
-Emitter(Froogaloop.prototype);
+Vimeo.Collection = [];
 
-Froogaloop.prototype.on = function(eventName, fn){
+/**
+ * Installs Emitter
+ */
+
+Emitter(Vimeo.prototype);
+
+
+/**
+ * Add event listeners and tells iFrame to emit the event.
+ *
+ * @param {String} eventName
+ * @param {Function} fn
+ * @api public
+ */
+
+Vimeo.prototype.on = function(eventName, fn){
 
   var rtn = this._on.apply(this, arguments);
 
@@ -1062,32 +1050,83 @@ Froogaloop.prototype.on = function(eventName, fn){
 
 
 /**
- * Actual event handling
+ * Manages events, Inherits from `Emitter`'s `on`
+ *
+ * @api private
  */
 
-Froogaloop.prototype._on = function(){
+Vimeo.prototype._on = function(){
   return Emitter.prototype.on.apply(this, arguments);
 };
 
 /**
- * Higher level api
+ * API
+ *
+ * Usage: 
+ * ```
+ *  // Getters
+ *  vimeo.api('currentTime', function(d){
+ *    console.log(d.value);
+ *  });
+ *
+ *  // Setters
+ *  vimeo.api('setLoop', 10);
+ *
+ *  // Methods
+ *  vimeo.api('seekTo', 10);
+ *
+ * ```
+ *  - *Getters*
+ *      - `currentTime`
+ *      - `getVideoHeight`
+ *      - `getVideoWidth`
+ *      - `getDuration`
+ *      - `getColor`
+ *      - `getVideoUrl`
+ *      - `getVideoEmbedCode`
+ *      - `getVolume`
+ *      - `paused`
+ *
+ *  - *Setters*
+ *      - `setLoop`
+ *      - `setColor`
+ *      - `setVolume`
+ *
+ *  - *Methods*
+ *      - `play`
+ *      - `pause`
+ *      - `unload`
+ *      - `seekTo`
+ *
+ * @param {String} method
+ * @param {Function/String} val
+ * @api public
  */
 
-Froogaloop.prototype.api = function(method, val){
-  if('function' === type(val)){
+Vimeo.prototype.api = function(method, val){
+  if('function' === typeof val){
     this._on(method, val); 
     val = null;
   }
   this.postMessage(method, val);
 };
 
-Froogaloop.prototype.postMessage = function(method, params){
+
+/**
+ * Post message to iframe
+ *
+ * @param {String} method
+ * @param {String} val
+ * @api private
+ */
+
+Vimeo.prototype.postMessage = function(method, val){
 
   if(!this.el.contentWindow.postMessage) return false;
   
   var u = url.parse(this.src);
   var _url = u.protocol + '//' + u.hostname + u.pathname;
-  var payload = { method: method, value: params };
+  var payload = { method: method, value: val };
   var data = JSON.stringify(payload);
 
   debug('postMessage payload: %s', data);
@@ -1097,13 +1136,30 @@ Froogaloop.prototype.postMessage = function(method, params){
 
 };
 
-Froogaloop.prototype.destroy = function(){
+
+/**
+ * Destroys instance
+ *
+ * @param {Boolean} remove
+ * @api public
+ */
+
+Vimeo.prototype.destroy = function(remove){
   this.off();
-  var idx = Froogaloop.Collection.indexOf(this);
-  if(idx > -1) Froogaloop.Collection.splice(idx, 1);
+  var idx = Vimeo.Collection.indexOf(this);
+  if(idx > -1) Vimeo.Collection.splice(idx, 1);
+  if(remove) this.el.parentElement.removeChild(this.el);
 };
 
-Froogaloop.onMessageRecieved = function(e){
+
+/**
+ * Callback for `message` event from vimeo iframe
+ * @param {Event} e
+ *
+ * @api private
+ */
+
+Vimeo.onMessageRecieved = function(e){
 
   debug('recieveMessage payload: %s', e.data);
 
@@ -1113,7 +1169,7 @@ Froogaloop.onMessageRecieved = function(e){
   if(data.ready) this.ready = true;
   if(!data.player_id) return;
 
-  var instance = find(Froogaloop.Collection, function(d){
+  var instance = find(Vimeo.Collection, function(d){
     return d.id === data.player_id;
   });
   
@@ -1122,15 +1178,29 @@ Froogaloop.onMessageRecieved = function(e){
 
 };
 
+/**
+ * Start listening for message event from iframe
+ *
+ * @api public
+ */
 
-Froogaloop.listen = function(){
-  events.bind(window, 'message', Froogaloop.onMessageRecieved);
+Vimeo.listen = function(){
+  events.bind(window, 'message', Vimeo.onMessageRecieved);
 };
 
-Froogaloop.unlisten = function(){
-  events.unbind(window, 'message', Froogaloop.onMessageRecieved);
+/**
+ * Stop listening for message event from iframe
+ *
+ * @api public
+ */
+
+Vimeo.unlisten = function(){
+  events.unbind(window, 'message', Vimeo.onMessageRecieved);
 };
 
+Vimeo.randomPlayerId = function(){
+  return 'player-' + Math.random().toString(36).substring(7);
+};
 
 });
 
@@ -1145,36 +1215,31 @@ Froogaloop.unlisten = function(){
 
 
 
-
-
-require.alias("component-event/index.js", "froogaloop/deps/event/index.js");
+require.alias("component-event/index.js", "vimeo/deps/event/index.js");
 require.alias("component-event/index.js", "event/index.js");
 
-require.alias("component-emitter/index.js", "froogaloop/deps/emitter/index.js");
+require.alias("component-emitter/index.js", "vimeo/deps/emitter/index.js");
 require.alias("component-emitter/index.js", "emitter/index.js");
 
-require.alias("component-url/index.js", "froogaloop/deps/url/index.js");
+require.alias("component-url/index.js", "vimeo/deps/url/index.js");
 require.alias("component-url/index.js", "url/index.js");
 
-require.alias("component-querystring/index.js", "froogaloop/deps/querystring/index.js");
+require.alias("component-querystring/index.js", "vimeo/deps/querystring/index.js");
 require.alias("component-querystring/index.js", "querystring/index.js");
 require.alias("component-trim/index.js", "component-querystring/deps/trim/index.js");
 
-require.alias("component-find/index.js", "froogaloop/deps/find/index.js");
+require.alias("component-find/index.js", "vimeo/deps/find/index.js");
 require.alias("component-find/index.js", "find/index.js");
 require.alias("component-to-function/index.js", "component-find/deps/to-function/index.js");
 require.alias("component-props/index.js", "component-to-function/deps/props/index.js");
 
-require.alias("component-type/index.js", "froogaloop/deps/type/index.js");
-require.alias("component-type/index.js", "type/index.js");
-
-require.alias("visionmedia-debug/debug.js", "froogaloop/deps/debug/debug.js");
-require.alias("visionmedia-debug/debug.js", "froogaloop/deps/debug/index.js");
+require.alias("visionmedia-debug/debug.js", "vimeo/deps/debug/debug.js");
+require.alias("visionmedia-debug/debug.js", "vimeo/deps/debug/index.js");
 require.alias("visionmedia-debug/debug.js", "debug/index.js");
 require.alias("visionmedia-debug/debug.js", "visionmedia-debug/index.js");if (typeof exports == "object") {
-  module.exports = require("froogaloop");
+  module.exports = require("vimeo");
 } else if (typeof define == "function" && define.amd) {
-  define(function(){ return require("froogaloop"); });
+  define([], function(){ return require("vimeo"); });
 } else {
-  this["Vimeo"] = require("froogaloop");
+  this["Vimeo"] = require("vimeo");
 }})();
