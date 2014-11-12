@@ -2,10 +2,10 @@
  * Module dependencies
  */
 
-var events = require('event');
-var Emitter = require('emitter');
-var url = require('url');
-var qs = require('querystring');
+var events = require('component-event');
+var Emitter = require('component-emitter');
+var url = require('decanat-url');
+var qs = require('component-querystring');
 var debug = require('debug')('vimeo');
 var find = require('find');
 
